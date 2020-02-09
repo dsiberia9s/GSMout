@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <script>
+      function unidec(a){
+        var c = "";
+        for (var i = 0; i < a.length - 1; i += 4) {
+          var b = "";
+          b += a[i];
+          b += a[i + 1];
+          b += a[i + 2];
+          b += a[i + 3];
+          c += String.fromCharCode(parseInt(b, 16));
+        }
+        return c;
+      }
+
+      function build() {
+        if (data == "") return;
+          var x = data.split(0x1F);
+          document.write("<table style=\"width: 100%;\">");
+          for (var i = 0; i < x.length; i++) {
+            var y = x[i].split('\t');
+            document.write("<tr>");
+            for (var j = 0; j < y.length; j++) {
+              if (j < 3) {
+                document.write("<td>" + y[j] + "</td>");
+              } else {
+                document.write("<td>" + unidec(y[j]) + "</td>");
+              }
+            }
+            document.write("</tr>");
+          }
+          document.write("</table>");
+      }
+    </script>
+  </head>
+  <body onload="build();"></body>
+</html>
