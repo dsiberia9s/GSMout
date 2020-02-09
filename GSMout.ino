@@ -155,19 +155,19 @@ void reg(String number, String message = "") {
     file.print('\t');
     file.print(message);
   }
-  file.print(0x1F);
+  file.print('\n');
   file.close();
 }
 
 String getReg(String path) {
   File file = SPIFFS.open(path.c_str());
-  String t = "<script>var data = \"";
+  String t = "<script>var data = `";
   if (file) {
     while (file.available()) {
       t += (char)file.read();
     }
   }
-  t += "\";</script>";
+  t += "`;</script>";
   file.close();
   file = SPIFFS.open("/index.html");
   if (file) {

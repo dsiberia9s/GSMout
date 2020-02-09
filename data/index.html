@@ -17,7 +17,7 @@
 
       function build() {
         if (data == "") return;
-          var x = data.split(0x1F);
+          var x = data.split('\n');
           document.write("<table style=\"width: 100%;\">");
           for (var i = 0; i < x.length; i++) {
             var y = x[i].split('\t');
