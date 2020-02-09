@@ -161,22 +161,35 @@ void reg(String number, String message = "") {
 
 String getReg(String path) {
   File file = SPIFFS.open(path.c_str());
-  String t = "<script>var data = `";
+  String t = "var data = `";
   if (file) {
     while (file.available()) {
       t += (char)file.read();
     }
   }
-  t += "`;</script>";
+  t += "`;";
   file.close();
+  String c_ = "";
   file = SPIFFS.open("/index.html");
   if (file) {
     while (file.available()) {
-      t += (char)file.read();
+      c_ += (char)file.read();
     }
   }
   file.close();
-  return t;
+  const char * c = c_.c_str();
+  char * a_ = strstr(c, "///");
+  int a = a_ - c;
+  String h = "";
+  for (int i = 0; i < c_.length(); i++) {
+    if ((i != a) && (i != a + 1) && (i != a + 2)) {
+      h += (char)c_[i];
+    } else {
+      h += t;
+      t = "";
+    }
+  }
+  return h;
 }
 
 void modemLive() {
@@ -210,7 +223,7 @@ void setup() {
     M5.Lcd.println(ssid);
     M5.Lcd.println(WiFi.localIP());
   } else {
-    M5.Lcd.println("Can't connect to WiFi network :(\nTry to REBOOT device");
+    M5.Lcd.println("Can't connect to WiFi network");
   }
 
   M5.Lcd.println("Starting NTP, please wait...");
