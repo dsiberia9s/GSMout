@@ -13,8 +13,6 @@ WiFiUDP udp;
 NTPClient ntp(udp, 7 * 3600);
 WebServer web(80);
 
-unsigned long p = 0;
-
 char * s2c(String s) {
   char * t_ = new char[s.length() + 1];
   strcpy(t_, s.c_str());
@@ -38,6 +36,27 @@ String parseString(int idSeparator, char separator, String str) {
     }
   }
   return output;
+}
+
+// сколько раз подстрока встречается в строке
+int strstrcnt(char * t, char * w) {
+  char * q = t;
+  int n = 0;
+  while ((q = strstr(q, w)) != NULL) {
+   n++;
+   q++;
+  }
+  return n;
+}
+
+// удаляет символ из строки
+String rchar(String s, char c) {
+  String t = "";
+  for (int i = 0; i < s.length(); i++) {
+    if (s[i] != c)
+      t += (char)s[i];
+  }
+  return t;
 }
 
 void debug(String s) {
@@ -103,10 +122,11 @@ String AT(String s, unsigned long timeout = 10000) {
     if (millis() - p >= timeout) break;
     b = "";
     Serial2.print(s);
-    delay(2000);
+    delay(100);
     while (Serial2.available()) {
       b += (char)Serial2.read();
     }
+    debug(b);
     if (strstr(s2c(s), "+CREG?")) {
       if (strstr(s2c(parseString(1, ',', b)), "1"))
         break;
@@ -115,34 +135,44 @@ String AT(String s, unsigned long timeout = 10000) {
         break;
     }
   }
-  delay(500);
   return b;
 }
 
-bool modemBegin() {
-  Serial2.begin(115200, SERIAL_8N1, RX_PIN, TX_PIN);  
-  pinMode(RESET_PIN, OUTPUT);
-  //return true;
+bool modemBegin(bool restart = false) {
+  if (!restart) {
+    Serial2.begin(115200, SERIAL_8N1, RX_PIN, TX_PIN);  
+    pinMode(RESET_PIN, OUTPUT);
+    //return true;
   
-  digitalWrite(RESET_PIN, LOW);
-  delay(1000);
-  digitalWrite(RESET_PIN, HIGH);
-  delay(10000);
-  if (AT("ATZ0\r") != "")
-  if (AT("AT\r") != "")
-  if (AT("AT+CFUN=1,1\r") != "")
-  if (AT("ATE0\r") != "")
-  if (AT("AT+CSCS=\"GSM\"\r") != "")
-  if (AT("AT+CSCB=1\r") != "")
-  if (AT("AT+CMGF=1\r") != "")
-  if (AT("AT+CMGD=1,4\r") != "")
-  if (AT("AT+CNMI=1,2,2,1,0\r") != "")
-  if (AT("AT+CREG?\r", 60000) != "")
+    // аппаратная перезагрузка
+    digitalWrite(RESET_PIN, LOW);
+    delay(1000);
+    digitalWrite(RESET_PIN, HIGH);
+  
+    delay(60000); // "прогрев" 
+  }
+  
+  if (AT("AT\r") != "") // модем отвечает?
+  if (AT("ATE0\r") != "") // ЭХО 1 – вкл (по умолчанию) / 0 – выкл
+  if (AT("AT+CPAS\r", 60000) != "") // Информация о состояние модуля 0 – готов к работе 2 – неизвестно 3 – входящий звонок 4 – голосовое соединение
+  if (AT("AT+CMGD=1,4\r") != "") // удалить все сообщения
+  if (AT("AT+CSCB=1\r") != "") // Приём специальных сообщений 0 – разрешен (по умолчанию) 1 – запрещен
+  if (AT("AT+CMGF=1\r") != "") // Текстовый режим 1 – включить 0 – выключить
+  if (AT("AT+CSCS=\"GSM\"\r") != "") // кодировка
+  if (AT("AT+CNMI=2,2\r") != "") // разрешить индикацию содержимого SMS сообщений.
+  if (AT("AT+CREG?\r", 60000) != "") // Тип регистрации сети Второй параметр: 0 – не зарегистрирован, поиска сети нет 1 – зарегистрирован, домашняя сеть 2 – не зарегистрирован, идёт поиск новой сети 3 – регистрация отклонена 4 – неизвестно 5 – роуминг
   return true;
   return false;
 }
 
+void modemRestart() {
+  digitalWrite(RESET_PIN, LOW);
+  delay(60000);
+  modemBegin(true);
+}
+
 void reg(String number, String message = "") {
+  debug(number + " : " + message);
   File file = SPIFFS.open(((message == "") ? "/calls.txt" : "/sms.txt"), FILE_APPEND);
   file.print(ntp.getEpochTime());
   file.print('\t');
@@ -192,25 +222,6 @@ String getReg(String path) {
   return h;
 }
 
-void modemLive() {
-  String b = "";
-  while (Serial2.available()) {
-    b += (char)Serial2.read();
-  }
-  if (strstr(s2c(b), "+CLIP:")) {
-    String number = parseString(1, '\"', parseString(3, '\r', b));
-    AT("ATH0\r"); // повесить трубку
-    reg(number);
-    //M5.Lcd.print(number);
-  } else if (strstr(s2c(b), "+CMT:")) {
-    String number = parseString(1, '\"', parseString(1, '\r', b));
-    String message = parseString(1, '\n', parseString(1, '\r', parseString(6, '\"', b)));
-    reg(number, message);
-    //M5.Lcd.print(number);
-    //M5.Lcd.print(message);
-  }
-}
-
 void setup() {
   M5.begin();
 
@@ -242,18 +253,62 @@ void setup() {
   web.begin();
 
   M5.Lcd.println("Starting modem, please wait...");
-  if ( modemBegin() ) 
+  if ( modemBegin() ) {
     M5.Lcd.println("Modem OK");
-  else
+  } else {
     M5.Lcd.println("Modem FAIL");
+    M5.Lcd.println("Modem Restarting");
+    modemRestart();
+  }
+    
 }
 
 void loop() {
-  if (millis() - p >= 1000) {
-    ntp.update();
-    p = millis();
+  unsigned long ntp_p = 0;
+  unsigned long modem_p = 0;
+  String modem_recived = "";
+  while (true) {
+    // ntp
+    if (millis() - ntp_p >= 1000) {
+      ntp.update();
+      ntp_p = millis();
+    }
+  
+    //web
+    web.handleClient();
+  
+    // modem
+    if (Serial2.available()) {
+      modem_recived += (char)Serial2.read();
+      modem_p = millis();
+    } else {
+      if (modem_recived == "") break;
+      int calls = strstrcnt((char *)modem_recived.c_str(), "+CLIP:");
+      int sms = strstrcnt((char *)modem_recived.c_str(), "+CMT:");
+      //String z = "Calls: " + String(calls) + "\nSMS: " + sms;
+      //debug(z);
+      modem_recived = rchar(modem_recived, '\r');
+      for (int i = 0; i < strstrcnt((char *)modem_recived.c_str(), "\n"); i++) {
+        String n = parseString(i, '\n', modem_recived);
+        if (strstr(n.c_str(), "+CLIP:")) {
+          String number = parseString(1, '\"', n);
+          AT("ATH0\r"); // повесить трубку
+          reg(number);
+        } else if (strstr(n.c_str(), "+CMT:")) {
+          String number = parseString(1, '\"', n);
+          i++;
+          String message = parseString(i, '\n', modem_recived);
+          reg(number, message);
+        } else if (strstr(n.c_str(), "NO CARRIER")) {
+          debug("No carrier. Modem restarting...");
+          modemRestart();
+          break;
+        }
+      }
+      modem_recived = "";
+    }
+    
+    
+    delay(10);
   }
-  web.handleClient();
-  modemLive();
-  delay(10);
 }
