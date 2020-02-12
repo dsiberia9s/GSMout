@@ -283,6 +283,7 @@ void loop() {
       modem_p = millis();
     } else {
       if (modem_recived == "") break;
+      debug(modem_recived);
       int calls = strstrcnt((char *)modem_recived.c_str(), "+CLIP:");
       int sms = strstrcnt((char *)modem_recived.c_str(), "+CMT:");
       //String z = "Calls: " + String(calls) + "\nSMS: " + sms;
