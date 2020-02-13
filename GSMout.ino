@@ -7,7 +7,7 @@
 
 #define RX_PIN  16
 #define TX_PIN  17
-#define RESET_PIN 5   
+#define RESET_PIN 5
 
 WiFiUDP udp;
 NTPClient ntp(udp, 7 * 3600);
@@ -157,6 +157,7 @@ bool modemBegin(bool restart = false) {
   if (AT("AT+CPAS\r", 60000) != "") // Информация о состояние модуля 0 – готов к работе 2 – неизвестно 3 – входящий звонок 4 – голосовое соединение
   if (AT("AT+CMGD=1,4\r") != "") // удалить все сообщения
   if (AT("AT+CSCB=1\r") != "") // Приём специальных сообщений 0 – разрешен (по умолчанию) 1 – запрещен
+  if (AT("AT+CLIP=1\r") != "") // АОН 1 – включить 0 – выключить
   if (AT("AT+CMGF=1\r") != "") // Текстовый режим 1 – включить 0 – выключить
   if (AT("AT+CSCS=\"GSM\"\r") != "") // кодировка
   if (AT("AT+CNMI=2,2\r") != "") // разрешить индикацию содержимого SMS сообщений.
@@ -285,8 +286,8 @@ void loop() {
       if (modem_recived == "") break;
       int calls = strstrcnt((char *)modem_recived.c_str(), "+CLIP:");
       int sms = strstrcnt((char *)modem_recived.c_str(), "+CMT:");
-      //String z = "Calls: " + String(calls) + "\nSMS: " + sms;
-      //debug(z);
+      String z = "Calls: " + String(calls) + "\nSMS: " + sms;
+      debug(modem_recived);
       modem_recived = rchar(modem_recived, '\r');
       for (int i = 0; i < strstrcnt((char *)modem_recived.c_str(), "\n"); i++) {
         String n = parseString(i, '\n', modem_recived);
@@ -300,9 +301,9 @@ void loop() {
           String message = parseString(i, '\n', modem_recived);
           reg(number, message);
         } else if (strstr(n.c_str(), "NO CARRIER")) {
-          debug("No carrier. Modem restarting...");
-          modemRestart();
-          break;
+          //debug("No carrier. Modem restarting...");
+          //modemRestart();
+          //break;
         }
       }
       modem_recived = "";
