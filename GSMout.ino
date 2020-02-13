@@ -10,7 +10,7 @@
 #define RESET_PIN 5
 
 WiFiUDP udp;
-NTPClient ntp(udp, 7 * 3600);
+NTPClient ntp(udp);
 WebServer web(80);
 
 char * s2c(String s) {
@@ -68,7 +68,7 @@ void debug(String s) {
 char * WiFiAuto(int timeout = 5000) {
   timeout = (timeout < 1000) ? 1000 : timeout;
   File file;
-  char * WiFiSSID;
+  char * WiFiSSID = NULL;
   char * WiFiPswd;
   const char * path;
   bool r = false;
@@ -80,6 +80,7 @@ char * WiFiAuto(int timeout = 5000) {
     while (file) {
       if (!file.isDirectory()) {
         String WiFiSSID_ = WiFi.SSID(i);
+        if (WiFiSSID) delete WiFiSSID;
         WiFiSSID = new char[WiFiSSID_.length() + 1];
         strcpy(WiFiSSID, WiFiSSID_.c_str());
         path = file.name();
@@ -126,9 +127,9 @@ String AT(String s, unsigned long timeout = 10000) {
     while (Serial2.available()) {
       b += (char)Serial2.read();
     }
-    debug(b);
-    if (strstr(s2c(s), "+CREG?")) {
-      if (strstr(s2c(parseString(1, ',', b)), "1"))
+    //debug(b);
+    if (strstr(s.c_str(), "+CREG?")) {
+      if (strstr((parseString(1, ',', b)).c_str(), "1"))
         break;
     } else {
       if (strstr(s2c(b), "OK"))
@@ -142,7 +143,7 @@ bool modemBegin(bool restart = false) {
   if (!restart) {
     Serial2.begin(115200, SERIAL_8N1, RX_PIN, TX_PIN);  
     pinMode(RESET_PIN, OUTPUT);
-    //return true;
+    return true;
   
     // аппаратная перезагрузка
     digitalWrite(RESET_PIN, LOW);
@@ -176,8 +177,6 @@ void reg(String number, String message = "") {
   debug(number + " : " + message);
   File file = SPIFFS.open(((message == "") ? "/calls.txt" : "/sms.txt"), FILE_APPEND);
   file.print(ntp.getEpochTime());
-  file.print('\t');
-  file.print(ntp.getFormattedTime());
   file.print('\t');
   if (message == "") {
     file.print(number);
@@ -287,7 +286,7 @@ void loop() {
       int calls = strstrcnt((char *)modem_recived.c_str(), "+CLIP:");
       int sms = strstrcnt((char *)modem_recived.c_str(), "+CMT:");
       String z = "Calls: " + String(calls) + "\nSMS: " + sms;
-      debug(modem_recived);
+      //debug(modem_recived);
       modem_recived = rchar(modem_recived, '\r');
       for (int i = 0; i < strstrcnt((char *)modem_recived.c_str(), "\n"); i++) {
         String n = parseString(i, '\n', modem_recived);
@@ -300,15 +299,10 @@ void loop() {
           i++;
           String message = parseString(i, '\n', modem_recived);
           reg(number, message);
-        } else if (strstr(n.c_str(), "NO CARRIER")) {
-          //debug("No carrier. Modem restarting...");
-          //modemRestart();
-          //break;
         }
       }
       modem_recived = "";
     }
-    
     
     delay(10);
   }

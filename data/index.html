@@ -3,12 +3,26 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <script>
       ///
+
+      function timeConverter(UNIX_timestamp) {
+        var a = new Date(UNIX_timestamp * 1000);
+        var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        var year = a.getFullYear();
+        var month = months[a.getMonth()];
+        var date = a.getDate();
+        var hour = ((hour = a.getHours()) < 10) ? ("0" + hour) : hour;
+        var min = ((min = a.getMinutes()) < 10) ? ("0" + min) : min;
+        var sec = ((sec = a.getSeconds()) < 10) ? ("0" + sec) : sec;
+        var time = date + ' ' + month + ' ' + year + ' ' + hour + ':' + min + ':' + sec ;
+        return time;
+      }
+
       function unidec(a) {
         for (var i = 0; i < a.length; i++) {
           if ((a[i] > 'F') && (a[i] < 'z')) return a;
         }
         var c = "";
-        for (var i = 0; i < a.length - 1; i += 4) {
+        for (var i = 0; i < a.length; i += 4) {
           var b = "";
           b += a[i];
           b += a[i + 1];
@@ -21,14 +35,16 @@
 
       function build() {
         if (data == ``) return;
-          var x = data.split('\n');
+          var x = data.split("\n");
           document.write("<table style=\"width: 100%;\">");
-          for (var i = 0; i < x.length; i++) {
+          for (var i = x.length - 2; i > -1 ; i--) {
             var y = x[i].split('\t');
             document.write("<tr>");
             for (var j = 0; j < y.length; j++) {
-              if (j < 3) {
-                document.write("<td>" + y[j] + "</td>");
+              if (j == 0) {
+                document.write("<td>" + timeConverter(y[j]) + "</td>");
+              } else if (j == 1) {
+                document.write("<td>" + ((y[j].indexOf("+") == -1) ? ("+" + y[j]) : (y[j])) + "</td>");
               } else {
                 document.write("<td>" + unidec(y[j]) + "</td>");
               }
