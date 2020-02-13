@@ -143,7 +143,7 @@ bool modemBegin(bool restart = false) {
   if (!restart) {
     Serial2.begin(115200, SERIAL_8N1, RX_PIN, TX_PIN);  
     pinMode(RESET_PIN, OUTPUT);
-    return true;
+    //return true;
   
     // аппаратная перезагрузка
     digitalWrite(RESET_PIN, LOW);
