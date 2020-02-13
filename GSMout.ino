@@ -174,17 +174,13 @@ void modemRestart() {
 }
 
 void reg(String number, String message = "") {
-  debug(number + " : " + message);
-  File file = SPIFFS.open(((message == "") ? "/calls.txt" : "/sms.txt"), FILE_APPEND);
+  //debug(number + " : " + message);
+  File file = SPIFFS.open("/GSMout.txt", FILE_APPEND);
   file.print(ntp.getEpochTime());
   file.print('\t');
-  if (message == "") {
-    file.print(number);
-  } else {
-    file.print(number);
-    file.print('\t');
-    file.print(message);
-  }
+  file.print(number);
+  file.print('\t');
+  file.print((message == "") ? "D83DDCDE" : message);
   file.print('\n');
   file.close();
 }
@@ -241,11 +237,8 @@ void setup() {
   ntp.begin();
 
   M5.Lcd.println("Starting WEB, please wait...");
-  web.on("/sms", []() {
-    web.send(200, "text/html", getReg("/sms.txt")); 
-  });
-  web.on("/calls", []() {
-    web.send(200, "text/html", getReg("/calls.txt"));
+  web.on("/GSMout", []() {
+    web.send(200, "text/html", getReg("/GSMout.txt")); 
   });
   web.onNotFound([]() {
     web.send(404, "text/html", "404");

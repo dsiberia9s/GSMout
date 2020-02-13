@@ -34,7 +34,7 @@
       }
 
       function build() {
-        if (data == ``) return;
+        if (data != ``) {
           var x = data.split("\n");
           document.write("<table style=\"width: 100%;\">");
           for (var i = x.length - 2; i > -1 ; i--) {
@@ -52,6 +52,9 @@
             document.write("</tr>");
           }
           document.write("</table>");
+        }
+
+        setTimeout("window.location.reload();", 5000);
       }
     </script>
   </head>
