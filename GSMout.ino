@@ -144,14 +144,14 @@ bool modemBegin(bool restart = false) {
   if (!restart) {
     Serial2.begin(115200, SERIAL_8N1, RX_PIN, TX_PIN);  
     pinMode(RESET_PIN, OUTPUT);
-    return true;
+    //return true;
   
     // аппаратная перезагрузка
     digitalWrite(RESET_PIN, LOW);
     delay(1000);
     digitalWrite(RESET_PIN, HIGH);
   
-    delay(60000); // "прогрев" 
+    //delay(60000); // "прогрев" 
   }
   
   if (AT("AT\r") != "") // модем отвечает?
@@ -209,11 +209,11 @@ String getReg(String path) {
   int a = a_ - c;
   String h = "";
   for (int i = 0; i < c_.length(); i++) {
-    if ((i != a) && (i != a + 1) && (i != a + 2) && (i != a + 3) && (i != a + 4) && (i != a + 5) && (i != a + 6) && (i != a + 7))  {
-      h += (char)c_[i];
-    } else {
+    if ((i >= a) && (i <= a + 7))  {
       h += t;
       t = "";
+    } else {
+      h += (char)c_[i];
     }
   }
   return h;
