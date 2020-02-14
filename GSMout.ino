@@ -1,10 +1,10 @@
 #include <M5Stack.h>
 #include <WiFi.h>
-#include "SPIFFS.h"
-#include "FS.h"
 #include <NTPClient.h>  // https://github.com/arduino-libraries/NTPClient
 #include <AsyncTCP.h> // https://github.com/me-no-dev/AsyncTCP
 #include "ESPAsyncWebServer.h"  // https://github.com/me-no-dev/ESPAsyncWebServer
+#include "SPIFFS.h"
+#include "FS.h"
 
 #define RX_PIN  16
 #define TX_PIN  17
@@ -14,13 +14,7 @@ WiFiUDP udp;
 NTPClient ntp(udp);
 AsyncWebServer web(80);
 
-char * s2c(String s) {
-  char * t_ = new char[s.length() + 1];
-  strcpy(t_, s.c_str());
-  char * t = t_;
-  delete t_;
-  return t;
-}
+String path = "/GSMout.txt";
 
 String parseString(int idSeparator, char separator, String str) { 
   String output = "";
@@ -133,7 +127,7 @@ String AT(String s, unsigned long timeout = 10000) {
       if (strstr((parseString(1, ',', b)).c_str(), "1"))
         break;
     } else {
-      if (strstr(s2c(b), "OK"))
+      if (strstr(b.c_str(), "OK"))
         break;
     }
   }
@@ -176,7 +170,7 @@ void modemRestart() {
 
 void reg(String number, String message = "") {
   //debug(number + " : " + message);
-  File file = SPIFFS.open("/GSMout.txt", FILE_APPEND);
+  File file = SPIFFS.open(path.c_str());
   file.print(ntp.getEpochTime());
   file.print('\t');
   file.print(number);
@@ -186,7 +180,7 @@ void reg(String number, String message = "") {
   file.close();
 }
 
-String getReg(String path) {
+String getReg() {
   File file = SPIFFS.open(path.c_str());
   String t = "var data = `";
   if (file) {
@@ -219,6 +213,13 @@ String getReg(String path) {
   return h;
 }
 
+String clearReg() {
+  if (SPIFFS.remove(path.c_str())) {
+    return "Incoming log cleared.";
+  }
+  return "Err: can't clear.";
+}
+
 void setup() {
   M5.begin();
 
@@ -239,7 +240,10 @@ void setup() {
 
   M5.Lcd.println("Starting WEB, please wait...");
   web.on("/GSMout", [](AsyncWebServerRequest *request) {
-    request->send(200, "text/html", getReg("/GSMout.txt")); 
+    request->send(200, "text/html", getReg()); 
+  });
+  web.on("/GSMout0", [](AsyncWebServerRequest *request) {
+    request->send(200, "text/html", clearReg()); 
   });
   web.on("/favicon.ico", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send(SPIFFS, "/favicon.ico", "image/x-icon");
