@@ -1,9 +1,10 @@
 #include <M5Stack.h>
 #include <WiFi.h>
-#include <NTPClient.h>
-#include <WebServer.h>
 #include "SPIFFS.h"
 #include "FS.h"
+#include <NTPClient.h>  // https://github.com/arduino-libraries/NTPClient
+#include <AsyncTCP.h> // https://github.com/me-no-dev/AsyncTCP
+#include "ESPAsyncWebServer.h"  // https://github.com/me-no-dev/ESPAsyncWebServer
 
 #define RX_PIN  16
 #define TX_PIN  17
@@ -11,7 +12,7 @@
 
 WiFiUDP udp;
 NTPClient ntp(udp);
-WebServer web(80);
+AsyncWebServer web(80);
 
 char * s2c(String s) {
   char * t_ = new char[s.length() + 1];
@@ -143,7 +144,7 @@ bool modemBegin(bool restart = false) {
   if (!restart) {
     Serial2.begin(115200, SERIAL_8N1, RX_PIN, TX_PIN);  
     pinMode(RESET_PIN, OUTPUT);
-    //return true;
+    return true;
   
     // аппаратная перезагрузка
     digitalWrite(RESET_PIN, LOW);
@@ -204,11 +205,11 @@ String getReg(String path) {
   }
   file.close();
   const char * c = c_.c_str();
-  char * a_ = strstr(c, "///");
+  char * a_ = strstr(c, "// $data");
   int a = a_ - c;
   String h = "";
   for (int i = 0; i < c_.length(); i++) {
-    if ((i != a) && (i != a + 1) && (i != a + 2)) {
+    if ((i != a) && (i != a + 1) && (i != a + 2) && (i != a + 3) && (i != a + 4) && (i != a + 5) && (i != a + 6) && (i != a + 7))  {
       h += (char)c_[i];
     } else {
       h += t;
@@ -237,16 +238,22 @@ void setup() {
   ntp.begin();
 
   M5.Lcd.println("Starting WEB, please wait...");
-  web.on("/GSMout", []() {
-    web.send(200, "text/html", getReg("/GSMout.txt")); 
+  web.on("/GSMout", [](AsyncWebServerRequest *request) {
+    request->send(200, "text/html", getReg("/GSMout.txt")); 
   });
-  web.onNotFound([]() {
-    web.send(404, "text/html", "404");
+  web.on("/favicon.ico", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(SPIFFS, "/favicon.ico", "image/x-icon");
+  });
+  web.on("/favicon.png", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(SPIFFS, "/favicon.png", "image/png");
+  });
+  web.onNotFound([](AsyncWebServerRequest *request) {
+    request->send(404, "text/html", "404");
   });
   web.begin();
 
   M5.Lcd.println("Starting modem, please wait...");
-  if ( modemBegin() ) {
+  if (modemBegin()) {
     M5.Lcd.println("Modem OK");
   } else {
     M5.Lcd.println("Modem FAIL");
@@ -266,9 +273,6 @@ void loop() {
       ntp.update();
       ntp_p = millis();
     }
-  
-    //web
-    web.handleClient();
   
     // modem
     if (Serial2.available()) {

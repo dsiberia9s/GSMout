@@ -1,8 +1,16 @@
 <!DOCTYPE html>
   <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" >
+    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" >
+    <link rel="apple-touch-icon" href="/favicon.png" >
+    <style>
+      table {
+        width: 100%;
+      }
+    </style>
+    <title>GSMout</title>
     <script>
-      ///
+      // $data
 
       function timeConverter(UNIX_timestamp) {
         var a = new Date(UNIX_timestamp * 1000);
@@ -36,26 +44,28 @@
       function build() {
         if (data != ``) {
           var x = data.split("\n");
-          document.write("<table style=\"width: 100%;\">");
+          var tableArr = ["<table>"];
           for (var i = x.length - 2; i > -1 ; i--) {
             var y = x[i].split('\t');
-            document.write("<tr>");
+            tableArr.push("<tr>");
             for (var j = 0; j < y.length; j++) {
               if (j == 0) {
-                document.write("<td>" + timeConverter(y[j]) + "</td>");
+                tableArr.push("<td>" + timeConverter(y[j]) + "</td>");
               } else if (j == 1) {
-                document.write("<td>" + ((y[j].indexOf("+") == -1) ? ("+" + y[j]) : (y[j])) + "</td>");
+                tableArr.push("<td>" + ((y[j].indexOf("+") == -1) ? ("+" + y[j]) : (y[j])) + "</td>");
               } else {
-                document.write("<td>" + unidec(y[j]) + "</td>");
+                tableArr.push("<td>" + unidec(y[j]) + "</td>");
               }
             }
-            document.write("</tr>");
+            tableArr.push("</tr>");
           }
-          document.write("</table>");
+          tableArr.push("</table>");
+          document.getElementById("table").innerHTML = tableArr.join("\n");
         }
-        document.write("<script>setTimeout(\"window.location.reload();\", 5000);<\/script>");
       }
     </script>
   </head>
-  <body onload="build();"></body>
+  <body onload="build();">
+    <div id="table"></div>
+  </body>
 </html>
