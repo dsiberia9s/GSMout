@@ -170,7 +170,7 @@ void modemRestart() {
 
 void reg(String number, String message = "") {
   //debug(number + " : " + message);
-  File file = SPIFFS.open(path.c_str());
+  File file = SPIFFS.open(path.c_str(), FILE_APPEND);
   file.print(ntp.getEpochTime());
   file.print('\t');
   file.print(number);
@@ -214,10 +214,10 @@ String getReg() {
 }
 
 String clearReg() {
-  if (SPIFFS.remove(path.c_str())) {
+  if (SPIFFS.open(path.c_str(), FILE_WRITE)) {
     return "Incoming log cleared.";
   }
-  return "Err: can't clear.";
+  return "Err: can't clear incoming log.";
 }
 
 void setup() {
