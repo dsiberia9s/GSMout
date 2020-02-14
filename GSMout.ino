@@ -115,14 +115,14 @@ String AT(String s, unsigned long timeout = 10000) {
   String b;
   unsigned long p = millis();
   while (true) {
-    if (millis() - p >= timeout) break;
     b = "";
+    if (millis() - p >= timeout) break;
     Serial2.print(s);
     delay(100);
     while (Serial2.available()) {
       b += (char)Serial2.read();
     }
-    //debug(b);
+    // debug(b);
     if (strstr(s.c_str(), "+CREG?")) {
       if (strstr((parseString(1, ',', b)).c_str(), "1"))
         break;
@@ -137,6 +137,8 @@ String AT(String s, unsigned long timeout = 10000) {
 bool modemBegin() {
   Serial2.begin(115200, SERIAL_8N1, RX_PIN, TX_PIN);  
   pinMode(RESET_PIN, OUTPUT);
+
+  digitalWrite(RESET_PIN, HIGH);
 
   if (AT("AT\r") != "") // модем отвечает?
   if (AT("ATE0\r") != "") // ЭХО 1 – вкл (по умолчанию) / 0 – выкл
@@ -208,26 +210,26 @@ String clearReg() {
 
 void watchCat() {
   String locationProblem = "";
+  if (AT("AT+CPAS\r") == "") {
+    locationProblem += "Modem ";
+  }
+  if (AT("AT+CREG?\r") == "") {
+    locationProblem += "Cellular ";
+  }
   if (WiFi.status() != WL_CONNECTED) {
     locationProblem += "Wi-Fi ";
   }
   if (!ntp.update()) {
     locationProblem += "NTP ";
   }
-  if (AT("AT+CPAS\r", 5000) == "") {
-    locationProblem += "Modem ";
-  }
-  if (AT("AT+CREG?\r", 5000) == "") {
-    locationProblem += "Cellular ";
-  }
   if (locationProblem != "") {
     M5.Lcd.fillScreen(TFT_WHITE);
     M5.Lcd.setTextColor(TFT_BLACK);
-    M5.Lcd.setCursor(60, 150);
+    M5.Lcd.setCursor(40, 150);
     M5.Lcd.setTextSize(2);
     M5.Lcd.print(locationProblem);
     M5.Lcd.setTextSize(4);
-    int a = 10;
+    int a = 30;
     for (int i = 0; i < a * 2; i++) {
       M5.Lcd.setTextColor(TFT_WHITE);
       M5.Lcd.setCursor(70, 80);
@@ -286,10 +288,8 @@ void setup() {
     M5.Lcd.println("Modem OK");
   } else {
     M5.Lcd.println("Modem FAIL");
-    // аппаратная перезагрузка модема
     digitalWrite(RESET_PIN, LOW);
     delay(1000);
-    digitalWrite(RESET_PIN, HIGH);
     ESP.restart();
   }
     
