@@ -134,20 +134,10 @@ String AT(String s, unsigned long timeout = 10000) {
   return b;
 }
 
-bool modemBegin(bool restart = false) {
-  if (!restart) {
-    Serial2.begin(115200, SERIAL_8N1, RX_PIN, TX_PIN);  
-    pinMode(RESET_PIN, OUTPUT);
-    //return true;
-  
-    // аппаратная перезагрузка
-    digitalWrite(RESET_PIN, LOW);
-    delay(1000);
-    digitalWrite(RESET_PIN, HIGH);
-  
-    //delay(60000); // "прогрев" 
-  }
-  
+bool modemBegin() {
+  Serial2.begin(115200, SERIAL_8N1, RX_PIN, TX_PIN);  
+  pinMode(RESET_PIN, OUTPUT);
+
   if (AT("AT\r") != "") // модем отвечает?
   if (AT("ATE0\r") != "") // ЭХО 1 – вкл (по умолчанию) / 0 – выкл
   if (AT("AT+CPAS\r", 60000) != "") // Информация о состояние модуля 0 – готов к работе 2 – неизвестно 3 – входящий звонок 4 – голосовое соединение
@@ -160,12 +150,6 @@ bool modemBegin(bool restart = false) {
   if (AT("AT+CREG?\r", 60000) != "") // Тип регистрации сети Второй параметр: 0 – не зарегистрирован, поиска сети нет 1 – зарегистрирован, домашняя сеть 2 – не зарегистрирован, идёт поиск новой сети 3 – регистрация отклонена 4 – неизвестно 5 – роуминг
   return true;
   return false;
-}
-
-void modemRestart() {
-  digitalWrite(RESET_PIN, LOW);
-  delay(60000);
-  modemBegin(true);
 }
 
 void reg(String number, String message = "") {
@@ -222,6 +206,45 @@ String clearReg() {
   return "Err: can't clear incoming log.";
 }
 
+void watchCat() {
+  String locationProblem = "";
+  if (WiFi.status() != WL_CONNECTED) {
+    locationProblem += "Wi-Fi ";
+  }
+  if (!ntp.update()) {
+    locationProblem += "NTP ";
+  }
+  if (AT("AT+CPAS\r", 5000) == "") {
+    locationProblem += "Modem ";
+  }
+  if (AT("AT+CREG?\r", 5000) == "") {
+    locationProblem += "Cellular ";
+  }
+  if (locationProblem != "") {
+    M5.Lcd.fillScreen(TFT_WHITE);
+    M5.Lcd.setTextColor(TFT_BLACK);
+    M5.Lcd.setCursor(60, 150);
+    M5.Lcd.setTextSize(2);
+    M5.Lcd.print(locationProblem);
+    M5.Lcd.setTextSize(4);
+    int a = 10;
+    for (int i = 0; i < a * 2; i++) {
+      M5.Lcd.setTextColor(TFT_WHITE);
+      M5.Lcd.setCursor(70, 80);
+      M5.Lcd.print("= ^..^ =");
+      M5.Lcd.setCursor(70, 80);
+      M5.Lcd.setTextColor(TFT_BLACK);
+      if (i % 5 == 0) {
+        M5.Lcd.print("= ^ .^ =");
+      } else {
+        M5.Lcd.print("= ^..^ =");
+      }
+      delay(500);
+    }
+    ESP.restart();
+  }
+}
+
 void setup() {
   M5.begin();
 
@@ -263,17 +286,27 @@ void setup() {
     M5.Lcd.println("Modem OK");
   } else {
     M5.Lcd.println("Modem FAIL");
-    M5.Lcd.println("Modem Restarting");
-    modemRestart();
+    // аппаратная перезагрузка модема
+    digitalWrite(RESET_PIN, LOW);
+    delay(1000);
+    digitalWrite(RESET_PIN, HIGH);
+    ESP.restart();
   }
     
 }
 
 void loop() {
+  unsigned long watchCat_p = 0;
   unsigned long ntp_p = 0;
   unsigned long modem_p = 0;
   String modem_recived = "";
   while (true) {
+    // watchCat
+    if (millis() - watchCat_p >= 60000) {
+      watchCat();
+      watchCat_p = millis();
+    }
+    
     // ntp
     if (millis() - ntp_p >= 1000) {
       ntp.update();
