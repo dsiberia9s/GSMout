@@ -214,7 +214,9 @@ String getReg() {
 }
 
 String clearReg() {
-  if (SPIFFS.open(path.c_str(), FILE_WRITE)) {
+  File file = SPIFFS.open(path.c_str(), FILE_WRITE);
+  if (file) {
+    file.close();
     return "Incoming log cleared.";
   }
   return "Err: can't clear incoming log.";
