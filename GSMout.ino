@@ -122,7 +122,7 @@ String AT(String s, unsigned long timeout = 10000) {
     while (Serial2.available()) {
       b += (char)Serial2.read();
     }
-    // debug(b);
+    debug(b);
     if (strstr(s.c_str(), "+CREG?")) {
       if (strstr((parseString(1, ',', b)).c_str(), "1"))
         break;
@@ -140,7 +140,7 @@ bool modemBegin() {
 
   digitalWrite(RESET_PIN, HIGH);
 
-  if (AT("AT\r") != "") // модем отвечает?
+  if (AT("AT\r", 60000) != "") // модем отвечает?
   if (AT("ATE0\r") != "") // ЭХО 1 – вкл (по умолчанию) / 0 – выкл
   if (AT("AT+CPAS\r", 60000) != "") // Информация о состояние модуля 0 – готов к работе 2 – неизвестно 3 – входящий звонок 4 – голосовое соединение
   if (AT("AT+CMGD=1,4\r") != "") // удалить все сообщения
