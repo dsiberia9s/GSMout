@@ -1,6 +1,8 @@
 #include <M5Stack.h>
 #include <WiFi.h>
+#include <Preferences.h>
 #include <NTPClient.h>  // https://github.com/arduino-libraries/NTPClient
+#include <ESP32Ping.h> // https://github.com/marian-craciunescu/ESP32Ping
 #include <AsyncTCP.h> // https://github.com/me-no-dev/AsyncTCP
 #include "ESPAsyncWebServer.h"  // https://github.com/me-no-dev/ESPAsyncWebServer
 #include "SPIFFS.h"
@@ -16,6 +18,7 @@
 String path = "/GSMout.txt";
 
 WiFiUDP udp;
+Preferences settings;
 NTPClient ntp(udp);
 AsyncWebServer web(80);
 
@@ -127,10 +130,18 @@ String AT(String s, unsigned long timeout = 10000) {
     while (Serial2.available()) {
       b += (char)Serial2.read();
     }
+    b = rchar(b, '\r');
     //debug(b);
-    if (strstr(s.c_str(), "+CREG?")) {
-      if (strstr((parseString(1, ',', b)).c_str(), "1"))
+    if (strstr(s.c_str(), "AT+CREG?\r")) {
+      if (strstr(b.c_str(), "+CREG:")) {
+        b = parseString(1, ',', parseString(1, '\n', b));
         break;
+      }
+    } else if (strstr(s.c_str(), "AT+CSQ\r")) {
+        if (strstr(b.c_str(), "+CSQ:")) {
+          b = parseString(1, ' ', parseString(0, ',', b));
+          break;
+        }
     } else {
       if (strstr(b.c_str(), "OK"))
         break;
@@ -157,7 +168,7 @@ bool modemBegin(bool restart = false) {
   if (AT("AT+CMGF=1\r") != "") // Текстовый режим 1 – включить 0 – выключить
   if (AT("AT+CSCS=\"GSM\"\r") != "") // кодировка
   if (AT("AT+CNMI=2,2\r") != "") // разрешить индикацию содержимого SMS сообщений.
-  if (AT("AT+CREG?\r", 60000) != "") // Тип регистрации сети Второй параметр: 0 – не зарегистрирован, поиска сети нет 1 – зарегистрирован, домашняя сеть 2 – не зарегистрирован, идёт поиск новой сети 3 – регистрация отклонена 4 – неизвестно 5 – роуминг
+  if (AT("AT+CREG?\r", 60000) == "1") // Тип регистрации сети Второй параметр: 0 – не зарегистрирован, поиска сети нет 1 – зарегистрирован, домашняя сеть 2 – не зарегистрирован, идёт поиск новой сети 3 – регистрация отклонена 4 – неизвестно 5 – роуминг
   return true;
   return false;
 }
@@ -172,6 +183,17 @@ void reg(String number, String message = "") {
   file.print((message == "") ? "D83DDCDE" : message);
   file.print('\n');
   file.close();
+
+  //watchCat
+  if (message == "") {
+    int watchCat_sms = settings.getInt("watchCat_sms", 0);
+    watchCat_sms++;
+    settings.putInt("watchCat_sms", watchCat_sms);
+  } else {
+    int watchCat_call = settings.getInt("watchCat_call", 0);
+    watchCat_call++;
+    settings.putInt("watchCat_call", watchCat_call);
+  }
 }
 
 String getReg() {
@@ -204,6 +226,11 @@ String getReg() {
       h += (char)c_[i];
     }
   }
+
+  // watchCat
+  settings.putInt("watchCat_sms", 0);
+  settings.putInt("watchCat_call", 0);
+  
   return h;
 }
 
@@ -217,17 +244,158 @@ String clearReg() {
 }
 
 void watchCat() {
-  int x = 20;
-  int y = 48;
-  if (watchCat_ntp)
-    M5.Lcd.drawPngFile(SPIFFS, "/ntp_true.png", x + 48 + 20, y);
+  int x = 34;
+  int y = 62;
+
+  // wifi
+  int wifi_rssi = WiFi.RSSI();
+  wifi_rssi = (!wifi_rssi) ? -INT_MIN : wifi_rssi;
+  int wifi;
+  if (wifi_rssi >= -50)
+    wifi = 1; //  M5.Lcd.drawPngFile(SPIFFS, "/wifi_true-3.png", x, y);
+  else if ((wifi_rssi < -50) && (wifi_rssi >= -60))
+    wifi = 2; //  M5.Lcd.drawPngFile(SPIFFS, "/wifi_true-2.png", x, y);
+  else if ((wifi_rssi < -60) && (wifi_rssi >= -70))
+    wifi = 3; // M5.Lcd.drawPngFile(SPIFFS, "/wifi_true-1.png", x, y);
   else
-    M5.Lcd.drawPngFile(SPIFFS, "/ntp_false.png", x + 48 + 20, y);
-  delay(1000);
+    wifi = 4; //  M5.Lcd.drawPngFile(SPIFFS, "/wifi_false.png", x, y);
+
+  // cell
+  int cell_rssi = (AT("AT+CSQ\r")).toInt();
+  cell_rssi = (AT("AT+CREG?\r", 3000) != "1") ? 99 : cell_rssi;
+  int cell;
+  if ((cell_rssi >= 31) && (cell_rssi < 99))
+    cell = 1; // M5.Lcd.drawPngFile(SPIFFS, "/cell_true-3.png", x, y + 48 + 20);
+  else if ((cell_rssi >= 10) && (cell_rssi < 31))
+    cell = 2; // M5.Lcd.drawPngFile(SPIFFS, "/cell_true-2.png", x, y + 48 + 20);
+  else if ((cell_rssi >= 1) && (cell_rssi < 10))
+    cell = 3; // M5.Lcd.drawPngFile(SPIFFS, "/cell_true-1.png", x, y + 48 + 20);
+  else
+    cell = 4; //  M5.Lcd.drawPngFile(SPIFFS, "/cell_false.png", x, y + 48 + 20);
+
+  // ntp
+  int ntp;
+  if (watchCat_ntp)
+    ntp = 1; // M5.Lcd.drawPngFile(SPIFFS, "/ntp_true.png", x + 20 + 48, y);
+  else
+    ntp = 2; // M5.Lcd.drawPngFile(SPIFFS, "/ntp_false.png", x + 20 + 48, y);
+
+  // wan
+  int wan;
+  if (Ping.ping("ya.com") || Ping.ping("google.com") || Ping.ping("baidu.com"))
+    wan = 1; // M5.Lcd.drawPngFile(SPIFFS, "/wan_true.png", x + 20 + 48, y + 48 + 20);
+  else
+    wan = 2; // M5.Lcd.drawPngFile(SPIFFS, "/wan_false.png", x + 20 + 48, y + 48 + 20);
+
+  // sms
+  int watchCat_sms = settings.getInt("watchCat_sms", 0);
+  int sms;
+  if (watchCat_sms)
+    sms = 1; // M5.Lcd.drawPngFile(SPIFFS, "/sms_true.png", x + 20 + 48 + 20 + 48, y);
+  else
+    sms = 2; // M5.Lcd.drawPngFile(SPIFFS, "/sms_false.png", x + 20 + 48 + 20 + 48, y);
+
+   // call
+  int watchCat_call = settings.getInt("watchCat_call", 0);
+  int call;
+  if (watchCat_call)
+    call = 1; // M5.Lcd.drawPngFile(SPIFFS, "/call_true.png", x + 20 + 48 + 20 + 48, y + 20 + 48);
+  else
+    call = 2; // M5.Lcd.drawPngFile(SPIFFS, "/call_false.png", x + 20 + 48 + 20 + 48, y + 20 + 48);
+
+  // wifi
+  switch (wifi) {
+    case 1:
+      M5.Lcd.drawPngFile(SPIFFS, "/wifi_true-3.png", x, y);
+      break;
+    case 2:
+      M5.Lcd.drawPngFile(SPIFFS, "/wifi_true-2.png", x, y);
+      break;
+    case 3:
+      M5.Lcd.drawPngFile(SPIFFS, "/wifi_true-1.png", x, y);
+      break;
+    case 4:
+      M5.Lcd.drawPngFile(SPIFFS, "/wifi_false.png", x, y);
+      break;
+  }
+
+  // cell
+  switch (cell) {
+    case 1:
+      M5.Lcd.drawPngFile(SPIFFS, "/cell_true-3.png", x, y + 48 + 20);
+      break;
+    case 2:
+      M5.Lcd.drawPngFile(SPIFFS, "/cell_true-2.png", x, y + 48 + 20);
+      break;
+    case 3:
+      M5.Lcd.drawPngFile(SPIFFS, "/cell_true-1.png", x, y + 48 + 20);
+      break;
+    case 4:
+      M5.Lcd.drawPngFile(SPIFFS, "/cell_false.png", x, y + 48 + 20);
+      break;
+  }
+
+  // ntp
+  switch (ntp) {
+    case 1:
+      M5.Lcd.drawPngFile(SPIFFS, "/ntp_true.png", x + 20 + 48, y);
+      break;
+    case 2:
+      M5.Lcd.drawPngFile(SPIFFS, "/ntp_false.png", x + 20 + 48, y);
+      break;
+  }
+
+  // wan
+  switch (wan) {
+    case 1:
+      M5.Lcd.drawPngFile(SPIFFS, "/wan_true.png", x + 20 + 48, y + 48 + 20);
+      break;
+    case 2:
+      M5.Lcd.drawPngFile(SPIFFS, "/wan_false.png", x + 20 + 48, y + 48 + 20);
+      break;
+  }
+
+  
+  // sms
+  switch (sms) {
+    case 1:
+      M5.Lcd.drawPngFile(SPIFFS, "/sms_true.png", x + 20 + 48 + 20 + 48, y);
+      break;
+    case 2:
+      M5.Lcd.drawPngFile(SPIFFS, "/sms_false.png", x + 20 + 48 + 20 + 48, y);
+      break;
+  }
+  M5.Lcd.fillRect(x + 20 + 48 + 20 + 48 + 20 + 48, y, 48, 48, TFT_WHITE);
+  M5.Lcd.setCursor(x + 20 + 48 + 20 + 48 + 20 + 48, y + 34);
+  M5.Lcd.setTextColor(TFT_BLACK);
+  if (watchCat_sms > 10)
+    M5.Lcd.print("10+");
+  else
+    M5.Lcd.print(watchCat_sms);
+
+  // call
+  switch (call) {
+    case 1:
+      M5.Lcd.drawPngFile(SPIFFS, "/call_true.png", x + 20 + 48 + 20 + 48, y + 20 + 48);
+      break;
+    case 2:
+      M5.Lcd.drawPngFile(SPIFFS, "/call_false.png", x + 20 + 48 + 20 + 48, y + 20 + 48);
+      break;
+  }
+  M5.Lcd.fillRect(x + 20 + 48 + 20 + 48 + 20 + 48, y + 20 + 48, 48, 48, TFT_WHITE);
+  M5.Lcd.setCursor(x + 20 + 48 + 20 + 48 + 20 + 48, y + 20 + 48 + 34);
+  M5.Lcd.setTextColor(TFT_BLACK);
+  if (watchCat_call > 10)
+    M5.Lcd.print("10+");
+  else
+    M5.Lcd.print(watchCat_call);
 }
 
 void setup() {
   M5.begin();
+
+  settings.begin("settings");
+  
   M5.Lcd.setFreeFont(&AGENCYB14pt7b);
   M5.Lcd.println();
 
@@ -240,8 +408,11 @@ void setup() {
   char * ssid = WiFiAuto(); 
   if (ssid)
     M5.Lcd.println("Wi-Fi OK");
-  else
-    M5.Lcd.println("Wi-Fi Fail");
+  else {
+    M5.Lcd.println("Wi-Fi Fail. Restarting 5 s...");
+    delay(5000);
+    ESP.restart();
+  }
 
   ntp.begin();
 
@@ -272,6 +443,7 @@ void setup() {
     // аппаратная перезагрузка
     digitalWrite(RESET_PIN, LOW);
     delay(1000);
+    ESP.restart();
   }
 
   M5.Lcd.fillScreen(TFT_WHITE);
