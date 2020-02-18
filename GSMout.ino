@@ -15,14 +15,18 @@
 #define TX_PIN  17
 #define RESET_PIN 5
 
-String path = "/GSMout.txt";
+// you can edit this
+int web_port = 80;
+String web_mainPage = "GSMout";
+
+// user CAN'T edit this
+String path = "/" + web_mainPage + ".txt";
+bool watchCat_ntp = false;
 
 WiFiUDP udp;
 Preferences settings;
 NTPClient ntp(udp);
-AsyncWebServer web(80);
-
-bool watchCat_ntp = false;
+AsyncWebServer web(web_port);
 
 String parseString(int idSeparator, char separator, String str) { 
   String output = "";
@@ -354,7 +358,6 @@ void watchCat() {
       M5.Lcd.drawPngFile(SPIFFS, "/wan_false.png", x + 20 + 48, y + 48 + 20);
       break;
   }
-
   
   // sms
   switch (sms) {
@@ -416,10 +419,10 @@ void setup() {
 
   ntp.begin();
 
-  web.on("/GSMout", [](AsyncWebServerRequest *request) {
+  web.on(("/" + web_mainPage).c_str(), [](AsyncWebServerRequest *request) {
     request->send(200, "text/html", getReg()); 
   });
-  web.on("/GSMout0", [](AsyncWebServerRequest *request) {
+  web.on(("/" + web_mainPage + "0").c_str(), [](AsyncWebServerRequest *request) {
     request->send(200, "text/html", clearReg()); 
   });
   web.on("/favicon.ico", HTTP_GET, [](AsyncWebServerRequest *request){
@@ -447,18 +450,29 @@ void setup() {
   }
 
   M5.Lcd.fillScreen(TFT_WHITE);
-  M5.Lcd.setCursor(0, 0);
+  M5.Lcd.fillRect(0, 0, 320, 48, TFT_BLACK);
+  M5.Lcd.setTextColor(TFT_WHITE);
+  M5.Lcd.setCursor(10, 32);
+  M5.Lcd.print("GSMout powered by M5Stack");
+  M5.Lcd.setTextColor(TFT_BLACK);
+  M5.Lcd.setCursor(10, 220);
+  M5.Lcd.print("http://");
+  M5.Lcd.print(WiFi.localIP());
+  M5.Lcd.print(":");
+  M5.Lcd.print(web_port);
+  M5.Lcd.print("/");
+  M5.Lcd.print(web_mainPage);
 }
 
 void loop() {
-  unsigned long watchcat_p = 0;
+  unsigned long watchCat_p = 0;
   unsigned long ntp_p = 0;
   String modem_recived = "";
   while (true) {
     // watchCat
-    if (millis() - watchcat_p >= 30000) {
+    if (millis() - watchCat_p >= 20000) {
       watchCat();
-      watchcat_p = millis();
+      watchCat_p = millis();
     }
     
     // ntp
