@@ -248,7 +248,7 @@ String clearReg() {
 }
 
 void watchCat() {
-  int x = 34;
+  int x = 34 + 10;
   int y = 62;
 
   // wifi
@@ -470,7 +470,7 @@ void loop() {
   String modem_recived = "";
   while (true) {
     // watchCat
-    if (millis() - watchCat_p >= 20000) {
+    if (millis() - watchCat_p >= 5000) {
       watchCat();
       watchCat_p = millis();
     }
