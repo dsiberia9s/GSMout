@@ -6,15 +6,20 @@
 #include "SPIFFS.h"
 #include "FS.h"
 
+#include "AGENCYB14pt7b.h"
+#include "AGENCYB22pt7b.h"
+
 #define RX_PIN  16
 #define TX_PIN  17
 #define RESET_PIN 5
+
+String path = "/GSMout.txt";
 
 WiFiUDP udp;
 NTPClient ntp(udp);
 AsyncWebServer web(80);
 
-String path = "/GSMout.txt";
+bool watchCat_ntp = false;
 
 String parseString(int idSeparator, char separator, String str) { 
   String output = "";
@@ -211,25 +216,35 @@ String clearReg() {
   return "Err: can't clear incoming log.";
 }
 
+void watchCat() {
+  int x = 20;
+  int y = 48;
+  if (watchCat_ntp)
+    M5.Lcd.drawPngFile(SPIFFS, "/ntp_true.png", x + 48 + 20, y);
+  else
+    M5.Lcd.drawPngFile(SPIFFS, "/ntp_false.png", x + 48 + 20, y);
+  delay(1000);
+}
+
 void setup() {
   M5.begin();
+  M5.Lcd.setFreeFont(&AGENCYB14pt7b);
+  M5.Lcd.println();
 
-  SPIFFS.begin(true);
+  if (SPIFFS.begin(true))
+    M5.Lcd.println("SPIFFS OK");
+  else
+    M5.Lcd.println("SPIFFS Fail");
 
   M5.Lcd.println("Searching Wi-Fi, please wait...");
   char * ssid = WiFiAuto(); 
-  if (ssid) {
-    M5.Lcd.println("Connectid to ");
-    M5.Lcd.println(ssid);
-    M5.Lcd.println(WiFi.localIP());
-  } else {
-    M5.Lcd.println("Can't connect to WiFi network");
-  }
+  if (ssid)
+    M5.Lcd.println("Wi-Fi OK");
+  else
+    M5.Lcd.println("Wi-Fi Fail");
 
-  M5.Lcd.println("Starting NTP, please wait...");
   ntp.begin();
 
-  M5.Lcd.println("Starting WEB, please wait...");
   web.on("/GSMout", [](AsyncWebServerRequest *request) {
     request->send(200, "text/html", getReg()); 
   });
@@ -245,36 +260,44 @@ void setup() {
   web.onNotFound([](AsyncWebServerRequest *request) {
     request->send(404, "text/html", "404");
   });
+  
   web.begin();
 
   M5.Lcd.println("Starting modem, please wait...");
   if (modemBegin()) {
     M5.Lcd.println("Modem OK");
   } else {
-    M5.Lcd.println("Modem FAIL");
-    M5.Lcd.println("Modem Restarting");
+    M5.Lcd.println("Modem Fail. Restarting 5 s...");
+    delay(5000);
     // аппаратная перезагрузка
     digitalWrite(RESET_PIN, LOW);
     delay(1000);
   }
-    
+
+  M5.Lcd.fillScreen(TFT_WHITE);
+  M5.Lcd.setCursor(0, 0);
 }
 
 void loop() {
+  unsigned long watchcat_p = 0;
   unsigned long ntp_p = 0;
-  unsigned long modem_p = 0;
   String modem_recived = "";
   while (true) {
+    // watchCat
+    if (millis() - watchcat_p >= 3000) {
+      watchCat();
+      watchcat_p = millis();
+    }
+    
     // ntp
     if (millis() - ntp_p >= 1000) {
-      ntp.update();
+      watchCat_ntp = ntp.update();
       ntp_p = millis();
     }
   
     // modem
     if (Serial2.available()) {
       modem_recived += (char)Serial2.read();
-      modem_p = millis();
     } else {
       if (modem_recived == "") break;
       int calls = strstrcnt((char *)modem_recived.c_str(), "+CLIP:");
