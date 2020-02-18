@@ -438,11 +438,11 @@ void setup() {
   if (modemBegin()) {
     M5.Lcd.println("Modem OK");
   } else {
-    M5.Lcd.println("Modem Fail. Restarting 5 s...");
-    delay(5000);
     // аппаратная перезагрузка
     digitalWrite(RESET_PIN, LOW);
     delay(1000);
+    M5.Lcd.println("Modem Fail. Restarting 60 s...");
+    delay(60000);
     ESP.restart();
   }
 
