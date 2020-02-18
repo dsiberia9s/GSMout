@@ -138,10 +138,10 @@ String AT(String s, unsigned long timeout = 10000) {
 }
 
 bool modemBegin(bool restart = false) {
-    Serial2.begin(115200, SERIAL_8N1, RX_PIN, TX_PIN);  
-    pinMode(RESET_PIN, OUTPUT);
-  
-    digitalWrite(RESET_PIN, HIGH);
+  Serial2.begin(115200, SERIAL_8N1, RX_PIN, TX_PIN);  
+  pinMode(RESET_PIN, OUTPUT);
+
+  digitalWrite(RESET_PIN, HIGH);
   
   if (AT("AT\r", 60000) != "") // модем отвечает?
   if (AT("ATE0\r") != "") // ЭХО 1 – вкл (по умолчанию) / 0 – выкл

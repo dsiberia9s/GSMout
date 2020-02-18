@@ -12,6 +12,8 @@
     <script>
       // $data
 
+      var hide = 4;
+
       function timeConverter(UNIX_timestamp) {
         var a = new Date(UNIX_timestamp * 1000);
         var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -52,7 +54,9 @@
               if (j == 0) {
                 tableArr.push("<td>" + timeConverter(y[j]) + "</td>");
               } else if (j == 1) {
-                tableArr.push("<td>" + ((y[j].indexOf("+") == -1) ? ("+" + y[j]) : (y[j])) + "</td>");
+                var number = ((y[j].indexOf("+") == -1) ? ("+" + y[j]) : (y[j]));
+                number = (hide) ? (number.substring(0, 2) + '*'.repeat(hide) + number.substring(2 + hide, number.length)) : (number) ;
+                tableArr.push("<td>" + number + "</td>");
               } else {
                 tableArr.push("<td>" + unidec(y[j]) + "</td>");
               }
