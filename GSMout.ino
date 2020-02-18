@@ -123,9 +123,9 @@ char * WiFiAuto(int timeout = 5000) {
   return NULL;
 }
 
-String AT(String s, unsigned long timeout = 10000) {
-  String b;
+String AT(String s, unsigned long timeout = 10000, String target = "") { // target – желаемое получаемое значение
   unsigned long p = millis();
+  String b;
   while (true) {
     b = "";
     if (millis() - p >= timeout) break;
@@ -135,11 +135,16 @@ String AT(String s, unsigned long timeout = 10000) {
       b += (char)Serial2.read();
     }
     b = rchar(b, '\r');
-    //debug(b);
+    //  debug(b);
     if (strstr(s.c_str(), "AT+CREG?\r")) {
       if (strstr(b.c_str(), "+CREG:")) {
         b = parseString(1, ',', parseString(1, '\n', b));
-        break;
+        if (target == "") {
+          break;
+        } else {
+          if (b == target)
+            break;
+        }
       }
     } else if (strstr(s.c_str(), "AT+CSQ\r")) {
         if (strstr(b.c_str(), "+CSQ:")) {
@@ -165,14 +170,14 @@ bool modemBegin(bool restart = false) {
   
   if (AT("AT\r", 60000) != "") // модем отвечает?
   if (AT("ATE0\r") != "") // ЭХО 1 – вкл (по умолчанию) / 0 – выкл
-  if (AT("AT+CPAS\r", 60000) != "") // Информация о состояние модуля 0 – готов к работе 2 – неизвестно 3 – входящий звонок 4 – голосовое соединение
+  if (AT("AT+CPAS\r", 60000, "2") != "") // Информация о состояние модуля 0 – готов к работе 2 – неизвестно 3 – входящий звонок 4 – голосовое соединение
   if (AT("AT+CMGD=1,4\r") != "") // удалить все сообщения
   if (AT("AT+CSCB=1\r") != "") // Приём специальных сообщений 0 – разрешен (по умолчанию) 1 – запрещен
   if (AT("AT+CLIP=1\r") != "") // АОН 1 – включить 0 – выключить
   if (AT("AT+CMGF=1\r") != "") // Текстовый режим 1 – включить 0 – выключить
   if (AT("AT+CSCS=\"GSM\"\r") != "") // кодировка
   if (AT("AT+CNMI=2,2\r") != "") // разрешить индикацию содержимого SMS сообщений.
-  if (AT("AT+CREG?\r", 60000) == "1") // Тип регистрации сети Второй параметр: 0 – не зарегистрирован, поиска сети нет 1 – зарегистрирован, домашняя сеть 2 – не зарегистрирован, идёт поиск новой сети 3 – регистрация отклонена 4 – неизвестно 5 – роуминг
+  if (AT("AT+CREG?\r", 60000, "1")) // Тип регистрации сети Второй параметр: 0 – не зарегистрирован, поиска сети нет 1 – зарегистрирован, домашняя сеть 2 – не зарегистрирован, идёт поиск новой сети 3 – регистрация отклонена 4 – неизвестно 5 – роуминг
   return true;
   return false;
 }
@@ -256,56 +261,56 @@ void watchCat() {
   wifi_rssi = (!wifi_rssi) ? -INT_MIN : wifi_rssi;
   int wifi;
   if (wifi_rssi >= -50)
-    wifi = 1; //  M5.Lcd.drawPngFile(SPIFFS, "/wifi_true-3.png", x, y);
+    wifi = 1;
   else if ((wifi_rssi < -50) && (wifi_rssi >= -60))
-    wifi = 2; //  M5.Lcd.drawPngFile(SPIFFS, "/wifi_true-2.png", x, y);
+    wifi = 2;
   else if ((wifi_rssi < -60) && (wifi_rssi >= -70))
-    wifi = 3; // M5.Lcd.drawPngFile(SPIFFS, "/wifi_true-1.png", x, y);
+    wifi = 3;
   else
-    wifi = 4; //  M5.Lcd.drawPngFile(SPIFFS, "/wifi_false.png", x, y);
+    wifi = 4;
 
   // cell
   int cell_rssi = (AT("AT+CSQ\r")).toInt();
   cell_rssi = (AT("AT+CREG?\r", 3000) != "1") ? 99 : cell_rssi;
   int cell;
   if ((cell_rssi >= 31) && (cell_rssi < 99))
-    cell = 1; // M5.Lcd.drawPngFile(SPIFFS, "/cell_true-3.png", x, y + 48 + 20);
+    cell = 1;
   else if ((cell_rssi >= 10) && (cell_rssi < 31))
-    cell = 2; // M5.Lcd.drawPngFile(SPIFFS, "/cell_true-2.png", x, y + 48 + 20);
+    cell = 2;
   else if ((cell_rssi >= 1) && (cell_rssi < 10))
-    cell = 3; // M5.Lcd.drawPngFile(SPIFFS, "/cell_true-1.png", x, y + 48 + 20);
+    cell = 3;
   else
-    cell = 4; //  M5.Lcd.drawPngFile(SPIFFS, "/cell_false.png", x, y + 48 + 20);
+    cell = 4;
 
   // ntp
   int ntp;
   if (watchCat_ntp)
-    ntp = 1; // M5.Lcd.drawPngFile(SPIFFS, "/ntp_true.png", x + 20 + 48, y);
+    ntp = 1;
   else
-    ntp = 2; // M5.Lcd.drawPngFile(SPIFFS, "/ntp_false.png", x + 20 + 48, y);
+    ntp = 2;
 
   // wan
   int wan;
   if (Ping.ping("ya.com") || Ping.ping("google.com") || Ping.ping("baidu.com"))
-    wan = 1; // M5.Lcd.drawPngFile(SPIFFS, "/wan_true.png", x + 20 + 48, y + 48 + 20);
+    wan = 1;
   else
-    wan = 2; // M5.Lcd.drawPngFile(SPIFFS, "/wan_false.png", x + 20 + 48, y + 48 + 20);
+    wan = 2;
 
   // sms
   int watchCat_sms = settings.getInt("watchCat_sms", 0);
   int sms;
   if (watchCat_sms)
-    sms = 1; // M5.Lcd.drawPngFile(SPIFFS, "/sms_true.png", x + 20 + 48 + 20 + 48, y);
+    sms = 1;
   else
-    sms = 2; // M5.Lcd.drawPngFile(SPIFFS, "/sms_false.png", x + 20 + 48 + 20 + 48, y);
+    sms = 2;
 
    // call
   int watchCat_call = settings.getInt("watchCat_call", 0);
   int call;
   if (watchCat_call)
-    call = 1; // M5.Lcd.drawPngFile(SPIFFS, "/call_true.png", x + 20 + 48 + 20 + 48, y + 20 + 48);
+    call = 1;
   else
-    call = 2; // M5.Lcd.drawPngFile(SPIFFS, "/call_false.png", x + 20 + 48 + 20 + 48, y + 20 + 48);
+    call = 2;
 
   // wifi
   switch (wifi) {
