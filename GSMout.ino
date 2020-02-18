@@ -185,7 +185,7 @@ void reg(String number, String message = "") {
   file.close();
 
   //watchCat
-  if (message == "") {
+  if (message != "") {
     int watchCat_sms = settings.getInt("watchCat_sms", 0);
     watchCat_sms++;
     settings.putInt("watchCat_sms", watchCat_sms);
@@ -456,7 +456,7 @@ void loop() {
   String modem_recived = "";
   while (true) {
     // watchCat
-    if (millis() - watchcat_p >= 3000) {
+    if (millis() - watchcat_p >= 30000) {
       watchCat();
       watchcat_p = millis();
     }
