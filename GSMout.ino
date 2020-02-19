@@ -9,7 +9,6 @@
 #include "FS.h"
 
 #include "AGENCYB14pt7b.h"
-#include "AGENCYB22pt7b.h"
 
 #define RX_PIN  16
 #define TX_PIN  17
