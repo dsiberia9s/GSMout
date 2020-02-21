@@ -257,6 +257,7 @@ void watchCat() {
 
   // wifi
   int wifi_rssi = WiFi.RSSI();
+  if (!wifi_rssi) WiFiAuto();
   wifi_rssi = (!wifi_rssi) ? -INT_MIN : wifi_rssi;
   int wifi;
   if (wifi_rssi >= -50)
