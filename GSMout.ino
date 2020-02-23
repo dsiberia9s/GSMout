@@ -255,11 +255,11 @@ void watchCat() {
   int x = 34 + 10;
   int y = 62;
 
+  int wifi, cell, ntp, wan, sms, call;
+
   // wifi
   int wifi_rssi = WiFi.RSSI();
-  if (!wifi_rssi) WiFiAuto();
   wifi_rssi = (!wifi_rssi) ? -INT_MIN : wifi_rssi;
-  int wifi;
   if (wifi_rssi >= -50)
     wifi = 1;
   else if ((wifi_rssi < -50) && (wifi_rssi >= -60))
@@ -272,7 +272,6 @@ void watchCat() {
   // cell
   int cell_rssi = (AT("AT+CSQ\r")).toInt();
   cell_rssi = (AT("AT+CREG?\r", 3000) != "1") ? 99 : cell_rssi;
-  int cell;
   if ((cell_rssi >= 31) && (cell_rssi < 99))
     cell = 1;
   else if ((cell_rssi >= 10) && (cell_rssi < 31))
@@ -280,17 +279,15 @@ void watchCat() {
   else if ((cell_rssi >= 1) && (cell_rssi < 10))
     cell = 3;
   else
-    cell = 4;
+    cell = 4;    
 
   // ntp
-  int ntp;
   if (watchCat_ntp)
     ntp = 1;
   else
     ntp = 2;
 
   // wan
-  int wan;
   if (Ping.ping("ya.com") || Ping.ping("google.com") || Ping.ping("baidu.com"))
     wan = 1;
   else
@@ -298,7 +295,6 @@ void watchCat() {
 
   // sms
   int watchCat_sms = settings.getInt("watchCat_sms", 0);
-  int sms;
   if (watchCat_sms)
     sms = 1;
   else
@@ -306,7 +302,6 @@ void watchCat() {
 
    // call
   int watchCat_call = settings.getInt("watchCat_call", 0);
-  int call;
   if (watchCat_call)
     call = 1;
   else
@@ -397,6 +392,15 @@ void watchCat() {
     M5.Lcd.print("10+");
   else
     M5.Lcd.print(watchCat_call);
+
+  // repairing area
+  if (wifi == 4) WiFiAuto();
+  if (cell == 4) {
+    digitalWrite(RESET_PIN, LOW);
+    delay(1000);
+    digitalWrite(RESET_PIN, HIGH);
+    delay(60000);
+  }
 }
 
 void setup() {
@@ -448,7 +452,6 @@ void setup() {
   } else {
     // аппаратная перезагрузка
     digitalWrite(RESET_PIN, LOW);
-    delay(1000);
     M5.Lcd.println("Modem Fail. Restarting 60 s...");
     delay(60000);
     ESP.restart();
