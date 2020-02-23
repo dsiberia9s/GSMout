@@ -451,8 +451,8 @@ void setup() {
     M5.Lcd.println("Modem OK");
   } else {
     // аппаратная перезагрузка
-    digitalWrite(RESET_PIN, LOW);
     M5.Lcd.println("Modem Fail. Restarting 60 s...");
+    digitalWrite(RESET_PIN, LOW);
     delay(60000);
     ESP.restart();
   }
