@@ -478,7 +478,7 @@ void loop() {
   String modem_recived = "";
   while (true) {
     // watchCat
-    if (millis() - watchCat_p >= 5000) {
+    if (millis() - watchCat_p >= 20000) {
       watchCat();
       watchCat_p = millis();
     }
