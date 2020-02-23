@@ -489,15 +489,12 @@ void setup() {
 }
 
 void loop() {
-  unsigned long watchCat_p;
-  unsigned long ntp_p;
+  unsigned long watchCat_p = 0;
+  unsigned long ntp_p = 0;
   String modem_recived = "";
   while (true) {
     // ntp
-    if (millis() - ntp_p >= 60000) {
-      watchCat_ntp = ntp.update();
-      ntp_p = millis();
-    }
+    watchCat_ntp = ntp.update();
 
     // watchCat
     if (millis() - watchCat_p >= 20000) {
