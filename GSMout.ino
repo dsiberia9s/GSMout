@@ -183,6 +183,7 @@ bool modemBegin(bool restart = false) {
 
 void reg(String number, String message = "") {
   //debug(number + " : " + message);
+  number = (strstr(number.c_str(), "+")) ? number : ("+" + number);
   File file = SPIFFS.open(path.c_str(), FILE_APPEND);
   file.print(ntp.getEpochTime());
   file.print('\t');
@@ -251,61 +252,72 @@ String clearReg() {
   return "Err: can't clear incoming log.";
 }
 
-void watchCat() {
+void watchCat(bool Idle = false) {
   int x = 34 + 10;
   int y = 62;
 
-  int wifi, cell, ntp, wan, sms, call;
+  // defaults values
+  int wifi = 4;
+  int cell = 4;
+  int ntp = 2;
+  int wan = 2;
+  int sms = 2;
+  int call = 2;
+  int watchCat_sms = 0;
+  int watchCat_call = 0;
 
-  // wifi
-  int wifi_rssi = WiFi.RSSI();
-  wifi_rssi = (!wifi_rssi) ? -INT_MIN : wifi_rssi;
-  if (wifi_rssi >= -50)
-    wifi = 1;
-  else if ((wifi_rssi < -50) && (wifi_rssi >= -60))
-    wifi = 2;
-  else if ((wifi_rssi < -60) && (wifi_rssi >= -70))
-    wifi = 3;
-  else
-    wifi = 4;
+  if (!Idle) {
 
-  // cell
-  int cell_rssi = (AT("AT+CSQ\r")).toInt();
-  cell_rssi = (AT("AT+CREG?\r", 3000) != "1") ? 99 : cell_rssi;
-  if ((cell_rssi >= 31) && (cell_rssi < 99))
-    cell = 1;
-  else if ((cell_rssi >= 10) && (cell_rssi < 31))
-    cell = 2;
-  else if ((cell_rssi >= 1) && (cell_rssi < 10))
-    cell = 3;
-  else
-    cell = 4;    
-
-  // ntp
-  if (watchCat_ntp)
-    ntp = 1;
-  else
-    ntp = 2;
-
-  // wan
-  if (Ping.ping("ya.com") || Ping.ping("google.com") || Ping.ping("baidu.com"))
-    wan = 1;
-  else
-    wan = 2;
-
-  // sms
-  int watchCat_sms = settings.getInt("watchCat_sms", 0);
-  if (watchCat_sms)
-    sms = 1;
-  else
-    sms = 2;
-
-   // call
-  int watchCat_call = settings.getInt("watchCat_call", 0);
-  if (watchCat_call)
-    call = 1;
-  else
-    call = 2;
+    // wifi
+    int wifi_rssi = WiFi.RSSI();
+    wifi_rssi = (!wifi_rssi) ? -INT_MIN : wifi_rssi;
+    if (wifi_rssi >= -50)
+      wifi = 1;
+    else if ((wifi_rssi < -50) && (wifi_rssi >= -60))
+      wifi = 2;
+    else if ((wifi_rssi < -60) && (wifi_rssi >= -70))
+      wifi = 3;
+    else
+      wifi = 4;
+  
+    // cell
+    int cell_rssi = (AT("AT+CSQ\r")).toInt();
+    cell_rssi = (AT("AT+CREG?\r", 3000) != "1") ? 99 : cell_rssi;
+    if ((cell_rssi >= 31) && (cell_rssi < 99))
+      cell = 1;
+    else if ((cell_rssi >= 10) && (cell_rssi < 31))
+      cell = 2;
+    else if ((cell_rssi >= 1) && (cell_rssi < 10))
+      cell = 3;
+    else
+      cell = 4;    
+  
+    // ntp
+    if (watchCat_ntp)
+      ntp = 1;
+    else
+      ntp = 2;
+  
+    // wan
+    if (Ping.ping("ya.com") || Ping.ping("google.com") || Ping.ping("baidu.com"))
+      wan = 1;
+    else
+      wan = 2;
+  
+    // sms
+    watchCat_sms = settings.getInt("watchCat_sms", 0);
+    if (watchCat_sms)
+      sms = 1;
+    else
+      sms = 2;
+  
+     // call
+    watchCat_call = settings.getInt("watchCat_call", 0);
+    if (watchCat_call)
+      call = 1;
+    else
+      call = 2;
+  }
 
   // wifi
   switch (wifi) {
@@ -393,13 +405,15 @@ void watchCat() {
   else
     M5.Lcd.print(watchCat_call);
 
-  // repairing area
-  if (wifi == 4) WiFiAuto();
-  if (cell == 4) {
-    digitalWrite(RESET_PIN, LOW);
-    delay(1000);
-    digitalWrite(RESET_PIN, HIGH);
-    delay(60000);
+  if (!Idle) {
+    // repairing area
+    if (wifi == 4) WiFiAuto();
+    if (cell == 4) {
+      digitalWrite(RESET_PIN, LOW);
+      delay(1000);
+      digitalWrite(RESET_PIN, HIGH);
+      delay(60000);
+    }
   }
 }
 
@@ -470,23 +484,25 @@ void setup() {
   M5.Lcd.print(web_port);
   M5.Lcd.print("/");
   M5.Lcd.print(web_mainPage);
+
+  watchCat(true);
 }
 
 void loop() {
-  unsigned long watchCat_p = 0;
-  unsigned long ntp_p = 0;
+  unsigned long watchCat_p;
+  unsigned long ntp_p;
   String modem_recived = "";
   while (true) {
+    // ntp
+    if (millis() - ntp_p >= 60000) {
+      watchCat_ntp = ntp.update();
+      ntp_p = millis();
+    }
+
     // watchCat
     if (millis() - watchCat_p >= 20000) {
       watchCat();
       watchCat_p = millis();
-    }
-    
-    // ntp
-    if (millis() - ntp_p >= 1000) {
-      watchCat_ntp = ntp.update();
-      ntp_p = millis();
     }
   
     // modem
