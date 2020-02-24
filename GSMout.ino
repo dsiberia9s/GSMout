@@ -28,6 +28,9 @@ int watchCat_wan = 0;
 int watchCat_sms = 0;
 int watchCat_call = 0;
 
+String reg_call_number = "";
+unsigned long reg_call_time = 0;
+
 WiFiUDP udp;
 Preferences settings;
 NTPClient ntp(udp);
@@ -188,7 +191,8 @@ bool modemBegin(bool restart = false) {
 }
 
 void reg(String number, String message = "") {
-  //debug(number + " : " + message);
+  if ((reg_call_number == number) && (millis() - reg_call_time < 10000)) return; // избежание регистрации повторного гудка
+
   number = (strstr(number.c_str(), "+")) ? number : ("+" + number);
   File file = SPIFFS.open(path.c_str(), FILE_APPEND);
   file.print(ntp.getEpochTime());
@@ -200,7 +204,7 @@ void reg(String number, String message = "") {
   file.close();
 
   //watchCat
-  if (message != "") {
+  if (message != "") {    
     int watchCat_sms_i = settings.getInt("watchCat_sms_i", 0);
     watchCat_sms_i++;
     settings.putInt("watchCat_sms_i", watchCat_sms_i);
@@ -208,6 +212,8 @@ void reg(String number, String message = "") {
     int watchCat_call_i = settings.getInt("watchCat_call_i", 0);
     watchCat_call_i++;
     settings.putInt("watchCat_call_i", watchCat_call_i);
+    reg_call_number = number;
+    reg_call_time = millis();
   }
 }
 
