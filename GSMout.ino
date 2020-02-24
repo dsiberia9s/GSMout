@@ -498,6 +498,8 @@ void loop() {
     // ntp
     if (watchCat_wan)
       watchCat_ntp = ntp.update();
+    else
+      watchCat_ntp = false;
   
     // modem
     if (Serial2.available()) {
