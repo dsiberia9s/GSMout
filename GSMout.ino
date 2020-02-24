@@ -20,7 +20,13 @@ String web_mainPage = "GSMout";
 
 // user CAN'T edit this
 String path = "/" + web_mainPage + ".txt";
-bool watchCat_ntp = false;
+
+int watchCat_wifi = 0;
+int watchCat_cell = 0;
+int watchCat_ntp = 0;
+int watchCat_wan = 0;
+int watchCat_sms = 0;
+int watchCat_call = 0;
 
 WiFiUDP udp;
 Preferences settings;
@@ -195,13 +201,13 @@ void reg(String number, String message = "") {
 
   //watchCat
   if (message != "") {
-    int watchCat_sms = settings.getInt("watchCat_sms", 0);
-    watchCat_sms++;
-    settings.putInt("watchCat_sms", watchCat_sms);
+    int watchCat_sms_i = settings.getInt("watchCat_sms_i", 0);
+    watchCat_sms_i++;
+    settings.putInt("watchCat_sms_i", watchCat_sms_i);
   } else {
-    int watchCat_call = settings.getInt("watchCat_call", 0);
-    watchCat_call++;
-    settings.putInt("watchCat_call", watchCat_call);
+    int watchCat_call_i = settings.getInt("watchCat_call_i", 0);
+    watchCat_call_i++;
+    settings.putInt("watchCat_call_i", watchCat_call_i);
   }
 }
 
@@ -237,8 +243,8 @@ String getReg() {
   }
 
   // watchCat
-  settings.putInt("watchCat_sms", 0);
-  settings.putInt("watchCat_call", 0);
+  settings.putInt("watchCat_sms_i", 0);
+  settings.putInt("watchCat_call_i", 0);
   
   return h;
 }
@@ -256,71 +262,63 @@ void watchCat(bool Idle = false) {
   int x = 34 + 10;
   int y = 62;
 
-  // defaults values
-  int wifi = 4;
-  int cell = 4;
-  int ntp = 2;
-  int wan = 2;
-  int sms = 2;
-  int call = 2;
-  int watchCat_sms = 0;
-  int watchCat_call = 0;
+  int watchCat_sms_i = 0;
+  int watchCat_call_i = 0;
 
   if (!Idle) {
-
     // wifi
     int wifi_rssi = WiFi.RSSI();
     wifi_rssi = (!wifi_rssi) ? -INT_MIN : wifi_rssi;
     if (wifi_rssi >= -50)
-      wifi = 1;
+      watchCat_wifi = 1;
     else if ((wifi_rssi < -50) && (wifi_rssi >= -60))
-      wifi = 2;
+      watchCat_wifi = 2;
     else if ((wifi_rssi < -60) && (wifi_rssi >= -70))
-      wifi = 3;
+      watchCat_wifi = 3;
     else
-      wifi = 4;
+      watchCat_wifi = 0;
   
     // cell
     int cell_rssi = (AT("AT+CSQ\r")).toInt();
     cell_rssi = (AT("AT+CREG?\r", 3000) != "1") ? 99 : cell_rssi;
     if ((cell_rssi >= 31) && (cell_rssi < 99))
-      cell = 1;
+      watchCat_cell = 1;
     else if ((cell_rssi >= 10) && (cell_rssi < 31))
-      cell = 2;
-    else if ((cell_rssi >= 1) && (cell_rssi < 10))
-      cell = 3;
+      watchCat_cell = 2;
+    else if ((cell_rssi >= 3) && (cell_rssi < 10))
+      watchCat_cell = 3;
     else
-      cell = 4;    
+      watchCat_cell = 0;    
   
     // ntp
     if (watchCat_ntp)
-      ntp = 1;
+      watchCat_ntp = 1;
     else
-      ntp = 2;
+      watchCat_ntp = 2;
   
     // wan
     if (Ping.ping("ya.com") || Ping.ping("google.com") || Ping.ping("baidu.com"))
-      wan = 1;
+      watchCat_wan = 1;
     else
-      wan = 2;
+      watchCat_wan = 0;
   
     // sms
-    watchCat_sms = settings.getInt("watchCat_sms", 0);
-    if (watchCat_sms)
-      sms = 1;
+    watchCat_sms_i = settings.getInt("watchCat_sms_i", 0);
+    if (watchCat_sms_i)
+      watchCat_sms = 1;
     else
-      sms = 2;
+      watchCat_sms = 0;
   
      // call
-    watchCat_call = settings.getInt("watchCat_call", 0);
-    if (watchCat_call)
-      call = 1;
+    watchCat_call_i = settings.getInt("watchCat_call_i", 0);
+    if (watchCat_call_i)
+      watchCat_call = 1;
     else
-      call = 2;
+      watchCat_call = 0;
   }
-
+  
   // wifi
-  switch (wifi) {
+  switch (watchCat_wifi) {
     case 1:
       M5.Lcd.drawPngFile(SPIFFS, "/wifi_true-3.png", x, y);
       break;
@@ -330,13 +328,13 @@ void watchCat(bool Idle = false) {
     case 3:
       M5.Lcd.drawPngFile(SPIFFS, "/wifi_true-1.png", x, y);
       break;
-    case 4:
+    case 0:
       M5.Lcd.drawPngFile(SPIFFS, "/wifi_false.png", x, y);
       break;
   }
 
   // cell
-  switch (cell) {
+  switch (watchCat_cell) {
     case 1:
       M5.Lcd.drawPngFile(SPIFFS, "/cell_true-3.png", x, y + 48 + 20);
       break;
@@ -346,74 +344,72 @@ void watchCat(bool Idle = false) {
     case 3:
       M5.Lcd.drawPngFile(SPIFFS, "/cell_true-1.png", x, y + 48 + 20);
       break;
-    case 4:
+    case 0:
       M5.Lcd.drawPngFile(SPIFFS, "/cell_false.png", x, y + 48 + 20);
       break;
   }
 
   // ntp
-  switch (ntp) {
+  switch (watchCat_ntp) {
     case 1:
       M5.Lcd.drawPngFile(SPIFFS, "/ntp_true.png", x + 20 + 48, y);
       break;
-    case 2:
+    case 0:
       M5.Lcd.drawPngFile(SPIFFS, "/ntp_false.png", x + 20 + 48, y);
       break;
   }
 
   // wan
-  switch (wan) {
+  switch (watchCat_wan) {
     case 1:
       M5.Lcd.drawPngFile(SPIFFS, "/wan_true.png", x + 20 + 48, y + 48 + 20);
       break;
-    case 2:
+    case 0:
       M5.Lcd.drawPngFile(SPIFFS, "/wan_false.png", x + 20 + 48, y + 48 + 20);
       break;
   }
   
   // sms
-  switch (sms) {
+  switch (watchCat_sms) {
     case 1:
       M5.Lcd.drawPngFile(SPIFFS, "/sms_true.png", x + 20 + 48 + 20 + 48, y);
       break;
-    case 2:
+    case 0:
       M5.Lcd.drawPngFile(SPIFFS, "/sms_false.png", x + 20 + 48 + 20 + 48, y);
       break;
   }
   M5.Lcd.fillRect(x + 20 + 48 + 20 + 48 + 20 + 48, y, 48, 48, TFT_WHITE);
   M5.Lcd.setCursor(x + 20 + 48 + 20 + 48 + 20 + 48, y + 34);
   M5.Lcd.setTextColor(TFT_BLACK);
-  if (watchCat_sms > 10)
+  if (watchCat_sms_i > 10)
     M5.Lcd.print("10+");
   else
-    M5.Lcd.print(watchCat_sms);
+    M5.Lcd.print(watchCat_sms_i);
 
   // call
-  switch (call) {
+  switch (watchCat_call) {
     case 1:
       M5.Lcd.drawPngFile(SPIFFS, "/call_true.png", x + 20 + 48 + 20 + 48, y + 20 + 48);
       break;
-    case 2:
+    case 0:
       M5.Lcd.drawPngFile(SPIFFS, "/call_false.png", x + 20 + 48 + 20 + 48, y + 20 + 48);
       break;
   }
   M5.Lcd.fillRect(x + 20 + 48 + 20 + 48 + 20 + 48, y + 20 + 48, 48, 48, TFT_WHITE);
   M5.Lcd.setCursor(x + 20 + 48 + 20 + 48 + 20 + 48, y + 20 + 48 + 34);
   M5.Lcd.setTextColor(TFT_BLACK);
-  if (watchCat_call > 10)
+  if (watchCat_call_i > 10)
     M5.Lcd.print("10+");
   else
-    M5.Lcd.print(watchCat_call);
+    M5.Lcd.print(watchCat_call_i);
 
-  if (!Idle) {
-    // repairing area
-    if (wifi == 4) WiFiAuto();
-    if (cell == 4) {
-      digitalWrite(RESET_PIN, LOW);
-      delay(1000);
-      digitalWrite(RESET_PIN, HIGH);
-      delay(60000);
-    }
+  if (Idle) return;
+  if (!watchCat_wifi) WiFiAuto();
+  if (!watchCat_cell) {
+    digitalWrite(RESET_PIN, LOW);
+    delay(1000);
+    digitalWrite(RESET_PIN, HIGH);
+    delay(60000);
   }
 }
 
@@ -492,15 +488,16 @@ void loop() {
   unsigned long watchCat_p = 0;
   unsigned long ntp_p = 0;
   String modem_recived = "";
-  while (true) {
-    // ntp
-    watchCat_ntp = ntp.update();
-
+  while (true) {    
     // watchCat
-    if (millis() - watchCat_p >= 20000) {
+    if (millis() - watchCat_p >= 5000) {
       watchCat();
       watchCat_p = millis();
     }
+    
+    // ntp
+    if (watchCat_wan)
+      watchCat_ntp = ntp.update();
   
     // modem
     if (Serial2.available()) {
