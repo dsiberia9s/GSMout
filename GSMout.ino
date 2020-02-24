@@ -290,17 +290,17 @@ void watchCat(bool Idle = false) {
     else
       watchCat_cell = 0;    
   
-    // ntp
-    if (watchCat_ntp)
-      watchCat_ntp = 1;
-    else
-      watchCat_ntp = 2;
-  
     // wan
-    if (Ping.ping("ya.com") || Ping.ping("google.com") || Ping.ping("baidu.com"))
-      watchCat_wan = 1;
+    if (watchCat_wifi)
+      watchCat_wan = (Ping.ping("ya.com") || Ping.ping("google.com") || Ping.ping("baidu.com")) ? 1 : 0;
     else
       watchCat_wan = 0;
+
+    // ntp
+    if (watchCat_wan)
+      watchCat_ntp = (ntp.update()) ? 1 : 0;
+    else
+      watchCat_ntp = 0;
   
     // sms
     watchCat_sms_i = settings.getInt("watchCat_sms_i", 0);
@@ -494,13 +494,7 @@ void loop() {
       watchCat();
       watchCat_p = millis();
     }
-    
-    // ntp
-    if (watchCat_wan)
-      watchCat_ntp = ntp.update();
-    else
-      watchCat_ntp = 0;
-  
+      
     // modem
     if (Serial2.available()) {
       modem_recived += (char)Serial2.read();
