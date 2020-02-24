@@ -191,9 +191,8 @@ bool modemBegin(bool restart = false) {
 }
 
 void reg(String number, String message = "") {
-  if ((reg_call_number == number) && (millis() - reg_call_time < 10000)) return; // избежание регистрации повторного гудка
-
   number = (strstr(number.c_str(), "+")) ? number : ("+" + number);
+  if ((reg_call_number == number) && (millis() - reg_call_time < 15000)) return; // избежание регистрации повторного гудка
   File file = SPIFFS.open(path.c_str(), FILE_APPEND);
   file.print(ntp.getEpochTime());
   file.print('\t');
