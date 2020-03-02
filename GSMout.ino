@@ -421,6 +421,8 @@ void watchCat(bool Idle = false) {
 void setup() {
   M5.begin();
 
+  M5.Lcd.setBrightness(10);
+
   settings.begin("settings");
   
   M5.Lcd.setFreeFont(&AGENCYB14pt7b);
