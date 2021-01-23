@@ -1,4 +1,8 @@
-![](https://raw.githubusercontent.com/dsiberia9s/M5Stack_GSMout_SMS_Calls_Logger/master/photo.jpg)
+![](https://raw.githubusercontent.com/dsiberia9s/M5Stack_GSMout_SMS_Calls_Logger/master/photo-1.jpg)
+
+![](https://raw.githubusercontent.com/dsiberia9s/M5Stack_GSMout_SMS_Calls_Logger/master/photo-2.jpg)
+
+![](https://raw.githubusercontent.com/dsiberia9s/M5Stack_GSMout_SMS_Calls_Logger/master/photo-3.jpg)
 
 **[по-русски]**
 
