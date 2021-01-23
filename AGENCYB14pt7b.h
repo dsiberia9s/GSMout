@@ -1,3 +1,17 @@
+/*
+
+  Agency FB Cyrillic is a trademark of The Font Bureau, Inc., and Oryol-World Design.
+  
+  ATF Agency Gothic was designed by M.F. Benton in 1932 as a single titling face.
+  In 1990 David Berlow saw potential in the squared forms of the narrow, monotone
+  capitals. He designed a lowercase and added a bold to produce Font Bureau
+  Agency, an immediate popular hit. Sensing further possibilities, he worked with
+  Tobias Frere-Jones and Jonathan Corum to expand Agency into a major series,
+  offering five weights in five widths for text & display settings.
+  URL: http://www.fontbureau.com
+
+*/
+
 const uint8_t AGENCYB14pt7bBitmaps[] PROGMEM = {
   0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x03, 0xFE, 0xEF, 0xDF, 0xBF,
   0x7E, 0xE8, 0x80, 0x0E, 0x70, 0x73, 0x83, 0x9C, 0x39, 0xC1, 0xCE, 0x3F,
